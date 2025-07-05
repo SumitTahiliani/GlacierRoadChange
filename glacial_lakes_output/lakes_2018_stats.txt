@@ -1,0 +1,2 @@
+Total lake area (m²): 238,795
+Number of polygons : 13
