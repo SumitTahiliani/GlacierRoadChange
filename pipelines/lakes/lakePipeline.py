@@ -4,25 +4,25 @@ import geopandas as gpd
 from extractLakes import extract_lakes, OUT_DIR
 import pandas as pd
 
-# 0️⃣  AOI (same Kedarnath demo)
-lat, lon, rad_km = 30.734, 79.068, 5
+# AOI (Kedarnath demo)
+lat, lon, rad_km =
 aoi = Point(lon, lat).buffer(rad_km / 111.0)   # EPSG:4326
 
-# 1️⃣  Extract 2018 & 2023
+# Extract 2018 & 2023
 l18 = extract_lakes(aoi, "2018-07-01/2018-07-31", tag="2018")
 l23 = extract_lakes(aoi, "2023-07-01/2023-07-31", tag="2023")
 
-# 2️⃣  Simple change overlay (new or expanded lakes)
+# Simple change overlay (new or expanded lakes)
 new_lakes = gpd.overlay(l23, l18, how="difference")
 new_lakes["change"] = "gain_2018‑23"
 
-# 3️⃣  Concatenate & save master layer
+# Concatenate & save master layer
 combo = gpd.GeoDataFrame(pd.concat([l18, l23, new_lakes], ignore_index=True),
                          crs=l18.crs)
 combo.to_file(OUT_DIR / "lakes_2018_2023_combo.geojson", driver="GeoJSON")
 print("✅  Extraction & change layer saved to lakes_2018_2023_combo.geojson")
 
-# 4️⃣  Quick metrics
+# Quick metrics
 area18 = l18.to_crs(6933).area.sum() / 1e6
 area23 = l23.to_crs(6933).area.sum() / 1e6
 gain   = new_lakes.to_crs(6933).area.sum() / 1e6
