@@ -15,18 +15,27 @@ import numpy as np
 
 TILE = 96  
 STRIDE = 48          # 50 % overlap
-MIN_ROAD_PIX = 20    # skip empty tiles
+MIN_ROAD_PIX = 10    # skip empty tiles
 
 src_img = rasterio.open("road_data/scene_2023.tif")
 src_msk = rasterio.open("road_data/roads_mask_2023.tif")
 out_dir = Path("tiles"); out_dir.mkdir(exist_ok=True)
 
 idx = 0
-for y in range(0, src_img.height - TILE + 1, STRIDE):
-    for x in range(0, src_img.width - TILE + 1, STRIDE):
-        win = Window(x, y, TILE, TILE)
-        img = src_img.read(window=win).astype("float32") / 10000  # scale 0‑1
-        msk = src_msk.read(1, window=win).astype("uint8")
+for y in range(0, src_img.height, STRIDE):
+    for x in range(0, src_img.width, STRIDE):
+        h = min(TILE, src_img.height - y)
+        w = min(TILE, src_img.width - x)
+        win = Window(x, y, w, h)
+
+        img_tile = src_img.read(window=win)
+        msk_tile = src_msk.read(1, window=win)
+
+        pad_h = TILE - h
+        pad_w = TILE - w
+
+        img = np.pad(img_tile, ((0, 0), (0, pad_h), (0, pad_w)), mode='constant').astype("float32") / 10000
+        msk = np.pad(msk_tile, ((0, pad_h), (0, pad_w)), mode='constant').astype("uint8")
         if msk.sum() < MIN_ROAD_PIX:
             continue
         # after loading each mask

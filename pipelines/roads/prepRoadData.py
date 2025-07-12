@@ -2,20 +2,19 @@
 """
 prep_road_data.py
 -----------------
-1. Download Sentinel‑2 L2A tile and clip to AOI.
+1. Download Sentinel-2 L2A tile and clip to AOI.
 2. Fetch OSM road lines (motorway→secondary) for same AOI.
-3. Rasterise roads to 10 m mask aligning with Sentinel‑2.
-4. Plot RGB image versus raster mask for sanity‑check.
+3. Rasterise roads to 10-m mask aligning with Sentinel-2.
+4. Plot RGB image versus raster mask for sanity-check.
 
 Outputs
 -------
-road_data/scene_2023.tif        ← 4‑bandox RGBN
+road_data/scene_2023.tif        ← 4-bandox RGBN
 road_data/roads_mask_2023.tif   ← uint8 (1=road)
 road_data/roads_mask_2023.png   ← preview PNG
 """
 
 from pathlib import Path
-import os
 import rasterio
 from rasterio.transform import from_bounds
 from rasterio.features import rasterize
@@ -43,9 +42,15 @@ OUT_DIR.mkdir(exist_ok=True)
 # 2. Download Sentinel‑2 scene (mapminer)
 # -------------------------------------------------------
 miner = Sentinel2Miner()
-ds_raw = miner.fetch(polygon=aoi_geom, daterange=DATE_RANGE)
+ds_raw = miner.fetch(polygon=aoi_geom, daterange=DATE_RANGE, radius=10000)
 ds = ds_raw.isel(time=0)[BANDS]                # first clear scene
 # print("Sentinel‑2 dataset shape:", ds.shape)
+
+aoi_proj = gpd.GeoSeries([aoi_geom], crs="EPSG:4326").to_crs(ds.rio.crs)
+
+aoi_buffered_proj = aoi_proj.buffer(10000)
+aoi_buffered = aoi_buffered_proj.to_crs("EPSG:4326").geometry[0]
+minx, miny, maxx, maxy = aoi_buffered.bounds
 
 # Save to COG for later use
 scene_path = OUT_DIR / "scene_2023.tif"
@@ -58,14 +63,14 @@ if not scene_path.exists():
 # -------------------------------------------------------
 ox.settings.use_cache = True
 tags = {"highway": ["motorway","trunk","primary","secondary",
-                    "tertiary","residential","unclassified"]}
+                    "tertiary","residential",]}
 gdf_osm = ox.geometries_from_bbox(
-    north=AOI_BOUNDS[3], south=AOI_BOUNDS[1],
-    east=AOI_BOUNDS[2], west=AOI_BOUNDS[0],
+    north=maxy, south=miny,
+    east=maxx, west=minx,
     tags=tags
 ).to_crs(ds.rio.crs)   # reproject to UTM of Sentinel‑2 tile
 
-buffer_m = 40        # metres
+buffer_m = 10        # metres
 gdf_osm = gdf_osm.to_crs(ds.rio.crs)          # stay in metres
 gdf_osm["geometry"] = gdf_osm.buffer(buffer_m)
 
@@ -87,7 +92,7 @@ mask = rasterize(
     all_touched=True
 )
 from scipy.ndimage import binary_dilation
-mask = binary_dilation(mask, iterations=2)   # was 2
+mask = binary_dilation(mask, iterations=1)   # was 2
 
 
 mask_path = OUT_DIR / "roads_mask_2023.tif"
@@ -99,7 +104,7 @@ with rasterio.open(
     dtype="uint8"
 ) as dst:
     dst.write(mask, 1)
-print("✓ Saved", mask_path)
+print("Saved", mask_path)
 
 # -------------------------------------------------------
 # 5. Quick side‑by‑side plot
