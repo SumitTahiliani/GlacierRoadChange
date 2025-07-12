@@ -12,6 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision
 import torch.nn.functional as F
 Path("models").mkdir(exist_ok=True)
+import random
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -22,7 +23,6 @@ train_tfms = A.Compose([
     A.RandomShadow(p=0.3),
     A.MotionBlur(p=0.2),
     A.RandomFog(p=0.2),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2(),
 ])
 
@@ -56,6 +56,7 @@ class RoadTiles(Dataset):
 
 tile_paths = sorted(Path("tiles").glob("img_*.npz"))
 split = int(0.8*len(tile_paths))
+random.shuffle(tile_paths)  # shuffle before splitting
 train_ds = RoadTiles(tile_paths[:split])
 val_ds   = RoadTiles(tile_paths[split:])
 train_dl = DataLoader(train_ds, batch_size=8, shuffle=True)
@@ -83,7 +84,7 @@ def combined_loss(logits, targets):
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # ---------- training ----------
-best_iou, EPOCHS = 0, 40
+best_iou, EPOCHS = 0, 150
 for epoch in range(0, EPOCHS):
     model.train()
     for img, msk in train_dl:

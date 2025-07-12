@@ -38,9 +38,9 @@ for y in range(0, scene.height-window_size+1, stride):
             p = torch.softmax(model(img_t)["out"],1)[0,1].numpy()
         prob[y:y+window_size, x:x+window_size] = np.maximum(prob[y:y+window_size, x:x+window_size], p)
 
-mask = (prob>0.5)
+mask = (prob>0.6)
 mask = binary_opening(mask, np.ones((3,3)))
-mask = remove_small_objects(mask, 100)
+mask = remove_small_objects(mask, 20)
 skeleton = skeletonize(mask)
 
 # ---- vectorise skeleton ----

@@ -3,3 +3,4 @@ tiles
 models
 *.tif
 cache
+*.geojson

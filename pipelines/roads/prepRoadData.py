@@ -42,13 +42,13 @@ OUT_DIR.mkdir(exist_ok=True)
 # 2. Download Sentinel‑2 scene (mapminer)
 # -------------------------------------------------------
 miner = Sentinel2Miner()
-ds_raw = miner.fetch(polygon=aoi_geom, daterange=DATE_RANGE, radius=10000)
+ds_raw = miner.fetch(polygon=aoi_geom, daterange=DATE_RANGE, radius=20000)
 ds = ds_raw.isel(time=0)[BANDS]                # first clear scene
 # print("Sentinel‑2 dataset shape:", ds.shape)
 
 aoi_proj = gpd.GeoSeries([aoi_geom], crs="EPSG:4326").to_crs(ds.rio.crs)
 
-aoi_buffered_proj = aoi_proj.buffer(10000)
+aoi_buffered_proj = aoi_proj.buffer(20000)
 aoi_buffered = aoi_buffered_proj.to_crs("EPSG:4326").geometry[0]
 minx, miny, maxx, maxy = aoi_buffered.bounds
 
